@@ -1,61 +1,64 @@
 body {
-    background-color: #1a1a1a;
-    color: #00ff00; /* 昔の計器風の緑 */
+    background-color: #000;
+    color: #00ff00;
     font-family: 'Courier New', Courier, monospace;
 }
 
-.cab-panel {
-    background: linear-gradient(145deg, #2c3e50, #000000);
-    border: 5px solid #555;
-    border-radius: 10px;
-    padding: 30px;
-    width: 400px;
-    margin: 50px auto;
-    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+.cab-panel-container {
+    display: flex;
+    justify-content: space-around;
+    padding: 20px;
 }
 
-#display {
-    font-size: 4rem;
-    background-color: #000;
-    padding: 10px;
-    border: 2px solid #333;
-    text-align: center;
-    color: #ff3300; /* オレンジ色のLED風 */
-    text-shadow: 0 0 10px #ff3300;
-    margin-bottom: 10px;
+/* 中央画面 */
+.main-display {
+    width: 60%;
+    background-color: #1a1a1a;
+    border: 3px solid #333;
+    padding: 20px;
 }
 
-/* ATS表示灯 */
-.status-lamp {
-    width: 60px;
-    height: 30px;
-    background-color: #300; /* 消灯時 */
-    color: #600;
-    text-align: center;
-    line-height: 30px;
-    font-weight: bold;
-    border-radius: 5px;
-    margin: 0 auto 20px;
+/* 速度計 */
+.speedometer {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    margin: 0 auto;
 }
 
-.status-lamp.active {
-    background-color: #ff0000; /* 点灯時 */
+.needle {
+    position: absolute;
+    bottom: 50%;
+    left: 50%;
+    width: 2px;
+    height: 90px;
+    background-color: #ff3300;
+    transform-origin: bottom center;
+    transform: rotate(-135deg); /* 初期位置(0km/h) */
+    transition: transform 1s linear;
+}
+
+/* ATS確認ボタン */
+#confirmButton {
+    background-color: #d35400; /* 警報時 */
     color: #fff;
-    box-shadow: 0 0 15px #ff0000;
-}
-
-.ats-btn {
-    background-color: #d35400;
-    color: white;
-    padding: 15px 25px;
-    border: none;
-    border-radius: 50%; /* 丸い押しボタン風 */
     cursor: pointer;
-    font-weight: bold;
-    box-shadow: 0 5px #a04000;
 }
 
-.ats-btn:active {
-    box-shadow: 0 2px #a04000;
-    transform: translateY(3px);
+#confirmButton.active {
+    background-color: #ff0000;
+    animation: blink 0.5s infinite;
+}
+
+/* 緊急ボタン */
+.emergency-btn {
+    background-color: #ff0000;
+    border-radius: 50%;
+    padding: 20px;
+}
+
+@keyframes blink {
+    0% { opacity: 1; }
+    50% { opacity: 0; }
+    100% { opacity: 1; }
 }
