@@ -237,15 +237,14 @@
         </div>
     </div>
 </div>
-
-<!-- 音源定義（必ずJSより前に書く） -->
-<audio id="sndAlarm" src="sounds/Alarm.wav" loop></audio>
-<audio id="sndAlarmEnd" src="sounds/Alarm_end.wav"></audio>
-<audio id="sndChime" src="sounds/chime.wav" loop></audio>
-<audio id="sndChimeEnd" src="sounds/chime_end.wav"></audio>
+<!-- 音源定義（パスを sounds/ に統一） -->
+<audio id="sndPattern" src="sounds/pattern.wav" preload="auto"></audio>
+<audio id="sndAlarm" src="sounds/Alarm.wav" loop preload="auto"></audio>
+<audio id="sndAlarmEnd" src="sounds/Alarm_end.wav" preload="auto"></audio>
+<audio id="sndChime" src="sounds/chime.wav" loop preload="auto"></audio>
+<audio id="sndChimeEnd" src="sounds/chime_end.wav" preload="auto"></audio>
 
 <script>
-    // ページの読み込みが完全に終わってから実行するように変更
     window.onload = function() {
         let timer = null;
         let currentSeconds = 0;
@@ -257,6 +256,8 @@
         const lampAts = document.getElementById('lamp-ats');
         const lampBrake = document.getElementById('lamp-brake');
 
+        // 音源要素の取得
+        const sndPattern = document.getElementById('sndPattern');
         const sndAlarm = document.getElementById('sndAlarm');
         const sndAlarmEnd = document.getElementById('sndAlarmEnd');
         const sndChime = document.getElementById('sndChime');
@@ -275,6 +276,13 @@
             if (currentSeconds <= 0) return;
 
             resetSystem();
+            
+            // 1. パターン接近音を鳴らす
+            if(sndPattern) {
+                sndPattern.currentTime = 0;
+                sndPattern.play().catch(e => console.log("Pattern sound error:", e));
+            }
+
             setSpeed(currentSeconds);
             timer = setInterval(() => {
                 currentSeconds--;
@@ -290,25 +298,34 @@
             isAlarmRunning = true;
             isChimeRunning = true;
             lampAts.classList.add('active-red');
-            if(sndAlarm) sndAlarm.play().catch(e => console.log("Alarm play error:", e));
-            if(sndChime) sndChime.play().catch(e => console.log("Chime play error:", e));
+            
+            // ベルとチャイムを開始
+            if(sndAlarm) sndAlarm.play();
+            if(sndChime) sndChime.play();
         }
 
+        // ATS確認（ベル停止）
         document.getElementById('confirmBtn').onclick = function() {
             if (isAlarmRunning) {
+                // 音の隙間を減らすため、停止と再生をほぼ同時に行う
+                if(sndAlarmEnd) {
+                    sndAlarmEnd.currentTime = 0;
+                    sndAlarmEnd.play();
+                }
                 sndAlarm.pause();
-                sndAlarm.currentTime = 0;
-                if(sndAlarmEnd) sndAlarmEnd.play();
                 isAlarmRunning = false;
                 checkAllStopped();
             }
         };
 
+        // 警報持続（チャイム停止）
         document.getElementById('chimeStopBtn').onclick = function() {
             if (isChimeRunning) {
+                if(sndChimeEnd) {
+                    sndChimeEnd.currentTime = 0;
+                    sndChimeEnd.play();
+                }
                 sndChime.pause();
-                sndChime.currentTime = 0;
-                if(sndChimeEnd) sndChimeEnd.play();
                 isChimeRunning = false;
                 checkAllStopped();
             }
@@ -330,7 +347,7 @@
             clearInterval(timer);
             isAlarmRunning = false;
             isChimeRunning = false;
-            [sndAlarm, sndChime, sndAlarmEnd, sndChimeEnd].forEach(a => {
+            [sndPattern, sndAlarm, sndChime, sndAlarmEnd, sndChimeEnd].forEach(a => {
                 if(a) { a.pause(); a.currentTime = 0; }
             });
             lampAts.classList.remove('active-red');
@@ -338,5 +355,6 @@
         }
     };
 </script>
+
 </body>
 </html>
