@@ -51,6 +51,38 @@
             </div>
         </div>
     </div>
+    <div class="cab-panel-container">
+    <div class="main-display">
+        <!-- 速度計エリア -->
+        <div class="speedometer-container">
+            <div class="needle" id="needle"></div>
+            <div class="digital-speed" id="digitalSpeed">000</div>
+            <div class="unit">km/h</div>
+        </div>
+
+        <!-- 状態表示灯群（画像中央上部） -->
+        <div class="indicator-grid">
+            <div class="lamp p-power">P電源</div>
+            <div class="lamp pattern">パターン接近</div>
+            <div class="lamp ats-active" id="atsLamp">ATS作動</div>
+            <div class="lamp brake-active" id="emergencyLamp">非常ブレーキ</div>
+        </div>
+    </div>
+
+    <div class="side-panel">
+        <!-- 緊急ボタン（赤色） -->
+        <button id="emergencyBtn" class="emergency-switch">緊 急</button>
+        
+        <!-- ATS確認ボタン（通常は消灯、鳴動時に点滅） -->
+        <button id="confirmBtn" class="confirm-switch">ATS確認</button>
+
+        <div class="time-input">
+            <input type="number" id="inputMins" max="2" placeholder="分">
+            <input type="number" id="inputSecs" max="59" placeholder="秒">
+            <button id="startBtn">運転開始</button>
+        </div>
+    </div>
+</div>
 
     <!-- ATS音源 -->
     <audio id="atsSound" src="sounds/ats_alert.mp3" loop></audio>
