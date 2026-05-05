@@ -246,6 +246,13 @@
 <audio id="sndChimeEnd" src="chime_end.wav"></audio>
 
 <script>
+    // 音源の読み込みエラーをチェックするコード
+[sndAlarm, sndAlarmEnd, sndChime, sndChimeEnd].forEach(audio => {
+    audio.addEventListener('error', (e) => {
+        console.error(`ファイルが見つかりません: ${audio.src}`);
+        alert(`エラー: ${audio.id} の読み込みに失敗しました。ファイル名を確認してください。`);
+    });
+});
     let timer = null;
     let currentSeconds = 0;
     let isAlarmRunning = false;
