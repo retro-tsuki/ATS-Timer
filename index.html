@@ -253,7 +253,7 @@
         alert(`エラー: ${audio.id} の読み込みに失敗しました。ファイル名を確認してください。`);
     });
 });
-    let timer = null;
+   let timer = null;
     let currentSeconds = 0;
     let isAlarmRunning = false;
     let isChimeRunning = false;
@@ -267,6 +267,13 @@
     const sndAlarmEnd = document.getElementById('sndAlarmEnd');
     const sndChime = document.getElementById('sndChime');
     const sndChimeEnd = document.getElementById('sndChimeEnd');
+
+    // 安全に音を鳴らすための関数
+    function safePlay(audio) {
+        if (audio && typeof audio.play === 'function') {
+            audio.play().catch(e => console.warn("再生に失敗しました:", e));
+        }
+    }
 
     function setSpeed(speed) {
         const angle = -135 + (speed * (270 / 160));
@@ -282,6 +289,9 @@
 
         resetSystem();
         setSpeed(currentSeconds);
+        
+        console.log("タイマーを開始します"); // 動作確認用
+
         timer = setInterval(() => {
             currentSeconds--;
             setSpeed(currentSeconds);
@@ -296,27 +306,27 @@
         isAlarmRunning = true;
         isChimeRunning = true;
         lampAts.classList.add('active-red');
-        sndAlarm.play();
-        sndChime.play();
+        
+        // 音源がない場合でもエラーにならないように再生
+        safePlay(sndAlarm);
+        safePlay(sndChime);
     }
 
-    // ATS確認ボタン（ベル停止）
     document.getElementById('confirmBtn').addEventListener('click', () => {
         if (isAlarmRunning) {
             sndAlarm.pause();
             sndAlarm.currentTime = 0;
-            sndAlarmEnd.play(); // 余韻再生
+            safePlay(sndAlarmEnd);
             isAlarmRunning = false;
             checkAllStopped();
         }
     });
 
-    // 警報持続ボタン（チャイム停止）
     document.getElementById('chimeStopBtn').addEventListener('click', () => {
         if (isChimeRunning) {
             sndChime.pause();
             sndChime.currentTime = 0;
-            sndChimeEnd.play(); // 余韻再生
+            safePlay(sndChimeEnd);
             isChimeRunning = false;
             checkAllStopped();
         }
@@ -338,10 +348,12 @@
         clearInterval(timer);
         isAlarmRunning = false;
         isChimeRunning = false;
-        sndAlarm.pause(); sndAlarm.currentTime = 0;
-        sndChime.pause(); sndChime.currentTime = 0;
-        sndAlarmEnd.pause(); sndAlarmEnd.currentTime = 0;
-        sndChimeEnd.pause(); sndChimeEnd.currentTime = 0;
+        
+        // 停止処理も安全に行う
+        [sndAlarm, sndChime, sndAlarmEnd, sndChimeEnd].forEach(a => {
+            if (a) { a.pause(); a.currentTime = 0; }
+        });
+
         lampAts.classList.remove('active-red');
         lampBrake.classList.remove('active-red');
     }
