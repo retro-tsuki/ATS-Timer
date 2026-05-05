@@ -13,6 +13,26 @@
         <button id="startBtn">運転開始</button>
         <button id="stopBtn">非常ブレーキ</button>
     </div>
+    <div class="cab-panel">
+    <div class="meter-area">
+        <div id="display">00:00</div>
+        <div class="status-lamp" id="atsLamp">ATS</div>
+    </div>
+    
+    <div class="controls">
+        <div class="input-group">
+            <input type="number" id="minutes" placeholder="分" min="0" max="99">
+            <span>分</span>
+            <input type="number" id="seconds" placeholder="秒" min="0" max="59">
+            <span>秒</span>
+        </div>
+        
+        <div class="button-group">
+            <button id="startBtn" class="lever-btn">出発進行</button>
+            <button id="confirmBtn" class="ats-btn">ATS確認</button>
+        </div>
+    </div>
+</div>
 
     <!-- ATSの警告音（フリー素材などを準備） -->
     <audio id="atsSound" src="sounds/ats_alert.mp3" loop></audio>
