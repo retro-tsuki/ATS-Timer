@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ATS Driver's Cab Timer v2.1</title>
+    <title>ATS Driver's Cab Timer v3.0</title>
     <style>
         body {
             background-color: #050505;
@@ -27,7 +27,6 @@
             border-radius: 10px;
         }
 
-        /* メインモニター */
         .monitor {
             background-color: #1a1e24;
             border: 8px solid #333;
@@ -38,7 +37,6 @@
             box-shadow: 0 0 20px #000;
         }
 
-        /* ランプ */
         .lamp-grid {
             display: flex;
             gap: 4px;
@@ -63,7 +61,6 @@
         .lamp.active-green { background-color: #080; color: #fff; box-shadow: 0 0 10px #0f0; }
         .lamp.active-red { background-color: #b00; color: #fff; box-shadow: 0 0 15px #f00; }
 
-        /* 速度計 */
         .speedometer-wrap {
             position: absolute;
             bottom: 30px;
@@ -127,25 +124,24 @@
             text-shadow: 0 0 15px #ff4800;
         }
 
-        /* 操作パネル */
         .control-panel {
             display: flex;
             flex-direction: column;
-            gap: 25px;
+            gap: 15px;
             width: 180px;
             align-items: center;
         }
 
-        .btn-label { font-size: 12px; margin-bottom: 5px; color: #888; }
+        .btn-label { font-size: 11px; margin-bottom: 3px; color: #888; }
 
         .round-btn {
-            width: 90px;
-            height: 90px;
+            width: 80px;
+            height: 80px;
             border-radius: 50%;
             border: 6px solid #222;
             font-weight: bold;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -153,54 +149,50 @@
             outline: none;
         }
 
-        /* 緊急ボタン */
         .btn-emergency {
             background-color: #700;
             color: #fff;
-            box-shadow: 0 6px #300, inset 0 0 20px rgba(0,0,0,0.5);
+            box-shadow: 0 5px #300, inset 0 0 15px rgba(0,0,0,0.5);
         }
-        .btn-emergency:active {
-            transform: translateY(4px);
-            box-shadow: 0 2px #300;
-        }
+        .btn-emergency:active { transform: translateY(3px); box-shadow: 0 2px #300; }
 
-        /* ATS確認ボタン（光らせない設定） */
         .btn-confirm {
             background-color: #ddd;
             color: #b00;
             border-color: #999;
-            box-shadow: 0 6px #666;
-            /* 点滅アニメーションを削除 */
+            box-shadow: 0 5px #666;
         }
-        
-        /* 押した時の「カチッ」という視覚効果 */
-        .btn-confirm:active {
-            transform: translateY(4px);
-            box-shadow: 0 2px #666;
-        }
+        .btn-confirm:active { transform: translateY(3px); box-shadow: 0 2px #666; }
 
-        .time-settings { text-align: center; width: 100%; }
+        /* 警報持続ボタン（黄色がかった色） */
+        .btn-chime-stop {
+            background-color: #ece3a1;
+            color: #7a6e00;
+            border-color: #bdb068;
+            box-shadow: 0 5px #7a713e;
+        }
+        .btn-chime-stop:active { transform: translateY(3px); box-shadow: 0 2px #7a713e; }
+
+        .time-settings { text-align: center; width: 100%; margin-top: 10px; }
         .time-settings input {
-            width: 55px;
+            width: 50px;
             background: #000;
             color: #0f0;
             border: 1px solid #444;
-            font-size: 20px;
+            font-size: 18px;
             text-align: center;
-            padding: 5px;
         }
 
         .btn-start {
-            margin-top: 15px;
+            margin-top: 10px;
             background: #333;
             color: #ddd;
             border: 1px solid #555;
-            padding: 10px;
+            padding: 8px;
             width: 100%;
             cursor: pointer;
             font-weight: bold;
         }
-        .btn-start:hover { background-color: #444; }
     </style>
 </head>
 <body>
@@ -216,15 +208,9 @@
 
         <div class="speedometer-wrap">
             <div class="gauge-label">
-                <span class="val-0">0</span>
-                <span class="val-20">20</span>
-                <span class="val-40">40</span>
-                <span class="val-60">60</span>
-                <span class="val-80">80</span>
-                <span class="val-100">100</span>
-                <span class="val-120">120</span>
-                <span class="val-140">140</span>
-                <span class="val-160">160</span>
+                <span class="val-0">0</span><span class="val-20">20</span><span class="val-40">40</span>
+                <span class="val-60">60</span><span class="val-80">80</span><span class="val-100">100</span>
+                <span class="val-120">120</span><span class="val-140">140</span><span class="val-160">160</span>
             </div>
             <div class="digital-speed" id="digitalSpeed">000</div>
             <div class="needle" id="needle"></div>
@@ -236,14 +222,16 @@
             <div class="btn-label">緊急停止</div>
             <button class="round-btn btn-emergency" id="emergencyBtn">緊 急</button>
         </div>
-        
         <div>
-            <div class="btn-label">警報解除</div>
+            <div class="btn-label">ベル停止</div>
             <button class="round-btn btn-confirm" id="confirmBtn">ATS確認</button>
+        </div>
+        <div>
+            <div class="btn-label">チャイム停止</div>
+            <button class="round-btn btn-chime-stop" id="chimeStopBtn">警報持続</button>
         </div>
 
         <div class="time-settings">
-            <div class="btn-label">TIME SET</div>
             <input type="number" id="inputMin" value="0" min="0" max="2"> 分
             <input type="number" id="inputSec" value="10" min="0" max="59"> 秒
             <button class="btn-start" id="startBtn">運転開始</button>
@@ -251,16 +239,27 @@
     </div>
 </div>
 
+<!-- 音源定義 -->
+<audio id="sndAlarm" src="Alarm.wav" loop></audio>
+<audio id="sndAlarmEnd" src="Alarm_end.wav"></audio>
+<audio id="sndChime" src="chime.wav" loop></audio>
+<audio id="sndChimeEnd" src="chime_end.wav"></audio>
+
 <script>
     let timer = null;
     let currentSeconds = 0;
-    let isATSActive = false;
+    let isAlarmRunning = false;
+    let isChimeRunning = false;
 
     const needle = document.getElementById('needle');
     const digitalSpeed = document.getElementById('digitalSpeed');
     const lampAts = document.getElementById('lamp-ats');
     const lampBrake = document.getElementById('lamp-brake');
-    const confirmBtn = document.getElementById('confirmBtn');
+
+    const sndAlarm = document.getElementById('sndAlarm');
+    const sndAlarmEnd = document.getElementById('sndAlarmEnd');
+    const sndChime = document.getElementById('sndChime');
+    const sndChimeEnd = document.getElementById('sndChimeEnd');
 
     function setSpeed(speed) {
         const angle = -135 + (speed * (270 / 160));
@@ -272,38 +271,57 @@
         const m = parseInt(document.getElementById('inputMin').value) || 0;
         const s = parseInt(document.getElementById('inputSec').value) || 0;
         currentSeconds = (m * 60) + s;
-
         if (currentSeconds <= 0) return;
 
         resetSystem();
         setSpeed(currentSeconds);
-
         timer = setInterval(() => {
             currentSeconds--;
             setSpeed(currentSeconds);
-
             if (currentSeconds <= 0) {
-                triggerATS();
+                triggerAlert();
             }
         }, 1000);
     });
 
-    function triggerATS() {
+    function triggerAlert() {
         clearInterval(timer);
-        isATSActive = true;
+        isAlarmRunning = true;
+        isChimeRunning = true;
         lampAts.classList.add('active-red');
-        // 光るアニメーションはここから削除されました
+        sndAlarm.play();
+        sndChime.play();
     }
 
-    confirmBtn.addEventListener('click', () => {
-        if (isATSActive) {
-            resetSystem();
-            setSpeed(0);
+    // ATS確認ボタン（ベル停止）
+    document.getElementById('confirmBtn').addEventListener('click', () => {
+        if (isAlarmRunning) {
+            sndAlarm.pause();
+            sndAlarm.currentTime = 0;
+            sndAlarmEnd.play(); // 余韻再生
+            isAlarmRunning = false;
+            checkAllStopped();
         }
     });
 
+    // 警報持続ボタン（チャイム停止）
+    document.getElementById('chimeStopBtn').addEventListener('click', () => {
+        if (isChimeRunning) {
+            sndChime.pause();
+            sndChime.currentTime = 0;
+            sndChimeEnd.play(); // 余韻再生
+            isChimeRunning = false;
+            checkAllStopped();
+        }
+    });
+
+    function checkAllStopped() {
+        if (!isAlarmRunning && !isChimeRunning) {
+            lampAts.classList.remove('active-red');
+        }
+    }
+
     document.getElementById('emergencyBtn').addEventListener('click', () => {
-        clearInterval(timer);
         resetSystem();
         lampBrake.classList.add('active-red');
         setSpeed(0);
@@ -311,11 +329,15 @@
 
     function resetSystem() {
         clearInterval(timer);
-        isATSActive = false;
+        isAlarmRunning = false;
+        isChimeRunning = false;
+        sndAlarm.pause(); sndAlarm.currentTime = 0;
+        sndChime.pause(); sndChime.currentTime = 0;
+        sndAlarmEnd.pause(); sndAlarmEnd.currentTime = 0;
+        sndChimeEnd.pause(); sndChimeEnd.currentTime = 0;
         lampAts.classList.remove('active-red');
         lampBrake.classList.remove('active-red');
     }
 </script>
-
 </body>
 </html>
