@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ATS Driver's Cab Timer v3.0</title>
+    <title>ATS Driver's Cab Timer v3.1</title>
     <style>
         body {
             background-color: #050505;
@@ -164,7 +164,6 @@
         }
         .btn-confirm:active { transform: translateY(3px); box-shadow: 0 2px #666; }
 
-        /* 警報持続ボタン（黄色がかった色） */
         .btn-chime-stop {
             background-color: #ece3a1;
             color: #7a6e00;
@@ -239,124 +238,105 @@
     </div>
 </div>
 
-<!-- 音源定義 -->
+<!-- 音源定義（必ずJSより前に書く） -->
 <audio id="sndAlarm" src="sounds/Alarm.wav" loop></audio>
 <audio id="sndAlarmEnd" src="sounds/Alarm_end.wav"></audio>
 <audio id="sndChime" src="sounds/chime.wav" loop></audio>
 <audio id="sndChimeEnd" src="sounds/chime_end.wav"></audio>
 
 <script>
-    // 音源の読み込みエラーをチェックするコード
-[sndAlarm, sndAlarmEnd, sndChime, sndChimeEnd].forEach(audio => {
-    audio.addEventListener('error', (e) => {
-        console.error(`ファイルが見つかりません: ${audio.src}`);
-        alert(`エラー: ${audio.id} の読み込みに失敗しました。ファイル名を確認してください。`);
-    });
-});
-   let timer = null;
-    let currentSeconds = 0;
-    let isAlarmRunning = false;
-    let isChimeRunning = false;
+    // ページの読み込みが完全に終わってから実行するように変更
+    window.onload = function() {
+        let timer = null;
+        let currentSeconds = 0;
+        let isAlarmRunning = false;
+        let isChimeRunning = false;
 
-    const needle = document.getElementById('needle');
-    const digitalSpeed = document.getElementById('digitalSpeed');
-    const lampAts = document.getElementById('lamp-ats');
-    const lampBrake = document.getElementById('lamp-brake');
+        const needle = document.getElementById('needle');
+        const digitalSpeed = document.getElementById('digitalSpeed');
+        const lampAts = document.getElementById('lamp-ats');
+        const lampBrake = document.getElementById('lamp-brake');
 
-    const sndAlarm = document.getElementById('sndAlarm');
-    const sndAlarmEnd = document.getElementById('sndAlarmEnd');
-    const sndChime = document.getElementById('sndChime');
-    const sndChimeEnd = document.getElementById('sndChimeEnd');
+        const sndAlarm = document.getElementById('sndAlarm');
+        const sndAlarmEnd = document.getElementById('sndAlarmEnd');
+        const sndChime = document.getElementById('sndChime');
+        const sndChimeEnd = document.getElementById('sndChimeEnd');
 
-    // 安全に音を鳴らすための関数
-    function safePlay(audio) {
-        if (audio && typeof audio.play === 'function') {
-            audio.play().catch(e => console.warn("再生に失敗しました:", e));
+        function setSpeed(speed) {
+            const angle = -135 + (speed * (270 / 160));
+            needle.style.transform = `rotate(${angle}deg)`;
+            digitalSpeed.innerText = String(Math.ceil(speed)).padStart(3, '0');
         }
-    }
 
-    function setSpeed(speed) {
-        const angle = -135 + (speed * (270 / 160));
-        needle.style.transform = `rotate(${angle}deg)`;
-        digitalSpeed.innerText = String(Math.ceil(speed)).padStart(3, '0');
-    }
+        document.getElementById('startBtn').onclick = function() {
+            const m = parseInt(document.getElementById('inputMin').value) || 0;
+            const s = parseInt(document.getElementById('inputSec').value) || 0;
+            currentSeconds = (m * 60) + s;
+            if (currentSeconds <= 0) return;
 
-    document.getElementById('startBtn').addEventListener('click', () => {
-        const m = parseInt(document.getElementById('inputMin').value) || 0;
-        const s = parseInt(document.getElementById('inputSec').value) || 0;
-        currentSeconds = (m * 60) + s;
-        if (currentSeconds <= 0) return;
-
-        resetSystem();
-        setSpeed(currentSeconds);
-        
-        console.log("タイマーを開始します"); // 動作確認用
-
-        timer = setInterval(() => {
-            currentSeconds--;
+            resetSystem();
             setSpeed(currentSeconds);
-            if (currentSeconds <= 0) {
-                triggerAlert();
+            timer = setInterval(() => {
+                currentSeconds--;
+                setSpeed(currentSeconds);
+                if (currentSeconds <= 0) {
+                    triggerAlert();
+                }
+            }, 1000);
+        };
+
+        function triggerAlert() {
+            clearInterval(timer);
+            isAlarmRunning = true;
+            isChimeRunning = true;
+            lampAts.classList.add('active-red');
+            if(sndAlarm) sndAlarm.play().catch(e => console.log("Alarm play error:", e));
+            if(sndChime) sndChime.play().catch(e => console.log("Chime play error:", e));
+        }
+
+        document.getElementById('confirmBtn').onclick = function() {
+            if (isAlarmRunning) {
+                sndAlarm.pause();
+                sndAlarm.currentTime = 0;
+                if(sndAlarmEnd) sndAlarmEnd.play();
+                isAlarmRunning = false;
+                checkAllStopped();
             }
-        }, 1000);
-    });
+        };
 
-    function triggerAlert() {
-        clearInterval(timer);
-        isAlarmRunning = true;
-        isChimeRunning = true;
-        lampAts.classList.add('active-red');
-        
-        // 音源がない場合でもエラーにならないように再生
-        safePlay(sndAlarm);
-        safePlay(sndChime);
-    }
+        document.getElementById('chimeStopBtn').onclick = function() {
+            if (isChimeRunning) {
+                sndChime.pause();
+                sndChime.currentTime = 0;
+                if(sndChimeEnd) sndChimeEnd.play();
+                isChimeRunning = false;
+                checkAllStopped();
+            }
+        };
 
-    document.getElementById('confirmBtn').addEventListener('click', () => {
-        if (isAlarmRunning) {
-            sndAlarm.pause();
-            sndAlarm.currentTime = 0;
-            safePlay(sndAlarmEnd);
+        function checkAllStopped() {
+            if (!isAlarmRunning && !isChimeRunning) {
+                lampAts.classList.remove('active-red');
+            }
+        }
+
+        document.getElementById('emergencyBtn').onclick = function() {
+            resetSystem();
+            lampBrake.classList.add('active-red');
+            setSpeed(0);
+        };
+
+        function resetSystem() {
+            clearInterval(timer);
             isAlarmRunning = false;
-            checkAllStopped();
-        }
-    });
-
-    document.getElementById('chimeStopBtn').addEventListener('click', () => {
-        if (isChimeRunning) {
-            sndChime.pause();
-            sndChime.currentTime = 0;
-            safePlay(sndChimeEnd);
             isChimeRunning = false;
-            checkAllStopped();
-        }
-    });
-
-    function checkAllStopped() {
-        if (!isAlarmRunning && !isChimeRunning) {
+            [sndAlarm, sndChime, sndAlarmEnd, sndChimeEnd].forEach(a => {
+                if(a) { a.pause(); a.currentTime = 0; }
+            });
             lampAts.classList.remove('active-red');
+            lampBrake.classList.remove('active-red');
         }
-    }
-
-    document.getElementById('emergencyBtn').addEventListener('click', () => {
-        resetSystem();
-        lampBrake.classList.add('active-red');
-        setSpeed(0);
-    });
-
-    function resetSystem() {
-        clearInterval(timer);
-        isAlarmRunning = false;
-        isChimeRunning = false;
-        
-        // 停止処理も安全に行う
-        [sndAlarm, sndChime, sndAlarmEnd, sndChimeEnd].forEach(a => {
-            if (a) { a.pause(); a.currentTime = 0; }
-        });
-
-        lampAts.classList.remove('active-red');
-        lampBrake.classList.remove('active-red');
-    }
+    };
 </script>
 </body>
 </html>
