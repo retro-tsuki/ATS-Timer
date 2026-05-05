@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ATS Driver's Cab Timer v2</title>
+    <title>ATS Driver's Cab Timer v2.1</title>
     <style>
         body {
             background-color: #050505;
@@ -38,7 +38,7 @@
             box-shadow: 0 0 20px #000;
         }
 
-        /* ランプを縦長に修正 */
+        /* ランプ */
         .lamp-grid {
             display: flex;
             gap: 4px;
@@ -50,12 +50,12 @@
             border: 1px solid #444;
             color: #444;
             font-size: 11px;
-            width: 18px; /* 縦長にするため幅を狭く */
-            height: 60px; /* 高さを出す */
+            width: 18px;
+            height: 60px;
             display: flex;
             align-items: center;
             justify-content: center;
-            writing-mode: vertical-rl; /* 縦書き */
+            writing-mode: vertical-rl;
             text-orientation: upright;
             border-radius: 2px;
         }
@@ -63,7 +63,7 @@
         .lamp.active-green { background-color: #080; color: #fff; box-shadow: 0 0 10px #0f0; }
         .lamp.active-red { background-color: #b00; color: #fff; box-shadow: 0 0 15px #f00; }
 
-        /* 速度計エリアの修正 */
+        /* 速度計 */
         .speedometer-wrap {
             position: absolute;
             bottom: 30px;
@@ -73,7 +73,6 @@
             height: 300px;
         }
 
-        /* 速度計の目盛り数字を円周上に配置 */
         .gauge-label {
             position: absolute;
             width: 100%;
@@ -93,7 +92,6 @@
             margin-top: -10px;
         }
 
-        /* 各数字の角度調整 (0km/h=-135度 〜 160km/h=135度) */
         .val-0   { transform: rotate(-135deg) translateY(-125px) rotate(135deg); }
         .val-20  { transform: rotate(-101deg) translateY(-125px) rotate(101deg); }
         .val-40  { transform: rotate(-67deg)  translateY(-125px) rotate(67deg); }
@@ -115,7 +113,7 @@
             transform: rotate(-135deg);
             transition: transform 1s linear;
             z-index: 10;
-            clip-path: polygon(50% 0%, 100% 100%, 0% 100%); /* 針を尖らせる */
+            clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
         }
 
         .digital-speed {
@@ -129,7 +127,7 @@
             text-shadow: 0 0 15px #ff4800;
         }
 
-        /* 右側操作パネル */
+        /* 操作パネル */
         .control-panel {
             display: flex;
             flex-direction: column;
@@ -140,7 +138,6 @@
 
         .btn-label { font-size: 12px; margin-bottom: 5px; color: #888; }
 
-        /* ボタンを丸く共通化 */
         .round-btn {
             width: 90px;
             height: 90px;
@@ -152,7 +149,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: 0.2s;
+            transition: 0.1s;
+            outline: none;
         }
 
         /* 緊急ボタン */
@@ -161,24 +159,24 @@
             color: #fff;
             box-shadow: 0 6px #300, inset 0 0 20px rgba(0,0,0,0.5);
         }
-        .btn-emergency:active { transform: translateY(3px); box-shadow: 0 3px #300; }
+        .btn-emergency:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px #300;
+        }
 
-        /* ATS確認ボタン（白地に赤字） */
+        /* ATS確認ボタン（光らせない設定） */
         .btn-confirm {
             background-color: #ddd;
             color: #b00;
             border-color: #999;
             box-shadow: 0 6px #666;
+            /* 点滅アニメーションを削除 */
         }
-        .btn-confirm.blinking {
-            background-color: #fff;
-            box-shadow: 0 0 20px #f00, 0 6px #666;
-            animation: blink-red 0.4s infinite alternate;
-        }
-
-        @keyframes blink-red {
-            from { background-color: #fff; color: #b00; }
-            to { background-color: #f00; color: #fff; }
+        
+        /* 押した時の「カチッ」という視覚効果 */
+        .btn-confirm:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px #666;
         }
 
         .time-settings { text-align: center; width: 100%; }
@@ -265,7 +263,6 @@
     const confirmBtn = document.getElementById('confirmBtn');
 
     function setSpeed(speed) {
-        // 0km/h=-135度, 160km/h=135度。1kmにつき1.6875度
         const angle = -135 + (speed * (270 / 160));
         needle.style.transform = `rotate(${angle}deg)`;
         digitalSpeed.innerText = String(Math.ceil(speed)).padStart(3, '0');
@@ -295,7 +292,7 @@
         clearInterval(timer);
         isATSActive = true;
         lampAts.classList.add('active-red');
-        confirmBtn.classList.add('blinking');
+        // 光るアニメーションはここから削除されました
     }
 
     confirmBtn.addEventListener('click', () => {
@@ -317,7 +314,6 @@
         isATSActive = false;
         lampAts.classList.remove('active-red');
         lampBrake.classList.remove('active-red');
-        confirmBtn.classList.remove('blinking');
     }
 </script>
 
