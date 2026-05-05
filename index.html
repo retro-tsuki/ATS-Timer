@@ -2,39 +2,57 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>ATS Timer</title>
+    <title>ATS Driver's Cab Timer</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="cab-panel">
-        <h1>ATS TIMER</h1>
-        <div id="display">00:00</div>
-        <input type="number" id="minutes" placeholder="分" min="0">
-        <button id="startBtn">運転開始</button>
-        <button id="stopBtn">非常ブレーキ</button>
-    </div>
-    <div class="cab-panel">
-    <div class="meter-area">
-        <div id="display">00:00</div>
-        <div class="status-lamp" id="atsLamp">ATS</div>
-    </div>
-    
-    <div class="controls">
-        <div class="input-group">
-            <input type="number" id="minutes" placeholder="分" min="0" max="99">
-            <span>分</span>
-            <input type="number" id="seconds" placeholder="秒" min="0" max="59">
-            <span>秒</span>
-        </div>
-        
-        <div class="button-group">
-            <button id="startBtn" class="lever-btn">出発進行</button>
-            <button id="confirmBtn" class="ats-btn">ATS確認</button>
-        </div>
-    </div>
-</div>
+    <div class="cab-panel-container">
+        <!-- 中央のメイン計器画面（画像左側） -->
+        <div class="main-display">
+            <!-- 速度計（タイマー残り時間） -->
+            <div class="speedometer-area">
+                <div class="speedometer">
+                    <svg viewBox="0 0 100 100" class="dial">
+                        <circle cx="50" cy="50" r="48" class="border"></circle>
+                        <!-- 速度計の目盛りと数字（CSSで配置するか、画像として配置） -->
+                        <path id="scale" d="M20 80 A40 40 0 1 1 80 80" fill="none" stroke="#666" stroke-width="2"/>
+                    </svg>
+                    <div id="display-number">000</div>
+                    <div class="unit">km/h</div>
+                    <!-- 速度計の針 -->
+                    <div id="needle" class="needle"></div>
+                </div>
+            </div>
 
-    <!-- ATSの警告音（フリー素材などを準備） -->
+            <!-- ステータス表示灯群（画像中央上部） -->
+            <div class="status-panel">
+                <div class="status-lamp" id="atsLamp">ATS</div>
+                <div class="status-lamp" id="confirmButton">ATS確認</div>
+                <!-- 他のランプはダミー -->
+                <div class="status-lamp dummy">ブレーキ</div>
+            </div>
+        </div>
+
+        <!-- 操作スイッチ群（画像右側） -->
+        <div class="control-panel">
+            <!-- 緊急ボタン -->
+            <button id="emergencyBtn" class="emergency-btn">緊急</button>
+            
+            <!-- 時間設定/スタートスイッチ -->
+            <div class="time-setter">
+                <input type="number" id="setTimeMins" placeholder="分" min="0" max="2">
+                <input type="number" id="setTimeSecs" placeholder="秒" min="0" max="119">
+                <button id="startBtn" class="start-btn">スタート</button>
+            </div>
+            
+            <!-- スタンプ（懐中時計） -->
+            <div class="pocket-watch">
+                <div id="pocket-time">00:00:00</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ATS音源 -->
     <audio id="atsSound" src="sounds/ats_alert.mp3" loop></audio>
 
     <script src="script.js"></script>
