@@ -2,47 +2,286 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ATS Driver's Cab Timer</title>
-    <link rel="stylesheet" href="style.css">
+    <style>
+        /* 全体の背景設定 */
+        body {
+            background-color: #050505;
+            color: #d0d0d0;
+            font-family: "MS UI Gothic", "Meiryo", sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        /* 運転台パネル全体 */
+        .cab-container {
+            display: flex;
+            background-color: #121212;
+            border: 4px solid #2a2a2a;
+            padding: 20px;
+            box-shadow: inset 0 0 50px #000;
+            gap: 30px;
+        }
+
+        /* 左側：メイン計器モニター */
+        .monitor {
+            background-color: #1a1e24;
+            border: 8px solid #333;
+            width: 500px;
+            height: 350px;
+            position: relative;
+            padding: 15px;
+            box-shadow: 0 0 10px #000;
+        }
+
+        /* 速度計のデザイン */
+        .speedometer-wrap {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 260px;
+            height: 260px;
+            border: 2px solid #444;
+            border-radius: 50%;
+            background: radial-gradient(circle, #222, #111);
+        }
+
+        /* 速度計の目盛り（簡易版） */
+        .speedometer-wrap::before {
+            content: "0 20 40 60 80 100 120 140 160";
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            top: 20px;
+            font-size: 12px;
+            letter-spacing: 12px;
+            color: #888;
+        }
+
+        /* 速度計の針 */
+        .needle {
+            position: absolute;
+            bottom: 50%;
+            left: 50%;
+            width: 3px;
+            height: 110px;
+            background-color: #ff3c00;
+            transform-origin: bottom center;
+            transform: rotate(-135deg); /* 0km/h */
+            transition: transform 1s linear;
+            z-index: 10;
+        }
+
+        /* デジタル速度表示 */
+        .digital-speed {
+            position: absolute;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 40px;
+            color: #ff8400;
+            font-family: 'Courier New', Courier, monospace;
+            text-shadow: 0 0 10px #ff4800;
+        }
+
+        /* 表示灯グループ */
+        .lamp-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 5px;
+            margin-bottom: 20px;
+        }
+
+        .lamp {
+            background-color: #222;
+            border: 1px solid #444;
+            color: #444;
+            font-size: 10px;
+            padding: 5px 2px;
+            text-align: center;
+        }
+
+        /* 点灯状態 */
+        .lamp.active-red { background-color: #900; color: #fff; box-shadow: 0 0 10px #f00; }
+        .lamp.active-green { background-color: #060; color: #fff; }
+
+        /* 右側：操作パネル */
+        .control-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 150px;
+        }
+
+        /* 緊急ボタン */
+        .btn-emergency {
+            background-color: #800;
+            color: #fff;
+            border: 4px solid #400;
+            border-radius: 50%;
+            width: 80px;
+            height: 80px;
+            margin: 0 auto;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 4px #200;
+        }
+        .btn-emergency:active { transform: translateY(2px); box-shadow: 0 2px #200; }
+
+        /* ATS確認ボタン */
+        .btn-confirm {
+            background-color: #444;
+            color: #888;
+            border: 2px solid #666;
+            padding: 10px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-confirm.blinking {
+            background-color: #d35400;
+            color: #fff;
+            animation: blink 0.5s infinite;
+        }
+
+        @keyframes blink {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        /* 時間設定 */
+        .time-settings input {
+            width: 50px;
+            background: #000;
+            color: #0f0;
+            border: 1px solid #333;
+            font-size: 18px;
+            text-align: center;
+        }
+
+        .btn-start {
+            margin-top: 10px;
+            background: #333;
+            color: #ddd;
+            border: 1px solid #555;
+            padding: 8px;
+            width: 100%;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
-    </div>
-    <div class="cab-panel-container">
-    <div class="main-display">
-        <!-- 速度計エリア -->
-        <div class="speedometer-container">
-            <div class="needle" id="needle"></div>
+
+<div class="cab-container">
+    <!-- メインモニター -->
+    <div class="monitor">
+        <div class="lamp-grid">
+            <div class="lamp active-green">P電源</div>
+            <div class="lamp" id="lamp-pattern">パターン</div>
+            <div class="lamp" id="lamp-ats">ATS作動</div>
+            <div class="lamp" id="lamp-brake">非常ブレーキ</div>
+        </div>
+
+        <div class="speedometer-wrap">
             <div class="digital-speed" id="digitalSpeed">000</div>
-            <div class="unit">km/h</div>
-        </div>
-
-        <!-- 状態表示灯群（画像中央上部） -->
-        <div class="indicator-grid">
-            <div class="lamp p-power">P電源</div>
-            <div class="lamp pattern">パターン接近</div>
-            <div class="lamp ats-active" id="atsLamp">ATS作動</div>
-            <div class="lamp brake-active" id="emergencyLamp">非常ブレーキ</div>
+            <div class="needle" id="needle"></div>
         </div>
     </div>
 
-    <div class="side-panel">
-        <!-- 緊急ボタン（赤色） -->
-        <button id="emergencyBtn" class="emergency-switch">緊 急</button>
+    <!-- 右側スイッチ類 -->
+    <div class="control-panel">
+        <button class="btn-emergency" id="emergencyBtn">緊 急</button>
         
-        <!-- ATS確認ボタン（通常は消灯、鳴動時に点滅） -->
-        <button id="confirmBtn" class="confirm-switch">ATS確認</button>
+        <button class="btn-confirm" id="confirmBtn">ATS確認</button>
 
-        <div class="time-input">
-            <input type="number" id="inputMins" max="2" placeholder="分">
-            <input type="number" id="inputSecs" max="59" placeholder="秒">
-            <button id="startBtn">運転開始</button>
+        <div class="time-settings">
+            <div style="margin-bottom: 5px;">TIME SET</div>
+            <input type="number" id="inputMin" value="0" min="0" max="2"> 分
+            <input type="number" id="inputSec" value="10" min="0" max="59"> 秒
+            <button class="btn-start" id="startBtn">運転開始</button>
         </div>
     </div>
 </div>
 
-    <!-- ATS音源 -->
-    <audio id="atsSound" src="sounds/ats_alert.mp3" loop></audio>
+<script>
+    let timer = null;
+    let currentSeconds = 0;
+    let isATSActive = false;
 
-    <script src="script.js"></script>
+    const needle = document.getElementById('needle');
+    const digitalSpeed = document.getElementById('digitalSpeed');
+    const lampAts = document.getElementById('lamp-ats');
+    const lampBrake = document.getElementById('lamp-brake');
+    const confirmBtn = document.getElementById('confirmBtn');
+
+    // 速度計の角度計算 (0km/h=-135deg, 160km/h=135deg)
+    function setSpeed(speed) {
+        const angle = -135 + (speed * (270 / 160));
+        needle.style.transform = `rotate(${angle}deg)`;
+        digitalSpeed.innerText = String(Math.ceil(speed)).padStart(3, '0');
+    }
+
+    // タイマー開始
+    document.getElementById('startBtn').addEventListener('click', () => {
+        const m = parseInt(document.getElementById('inputMin').value) || 0;
+        const s = parseInt(document.getElementById('inputSec').value) || 0;
+        currentSeconds = (m * 60) + s;
+
+        if (currentSeconds <= 0) return;
+
+        resetSystem();
+        setSpeed(currentSeconds);
+
+        timer = setInterval(() => {
+            currentSeconds--;
+            setSpeed(currentSeconds);
+
+            if (currentSeconds <= 0) {
+                triggerATS();
+            }
+        }, 1000);
+    });
+
+    // ATS鳴動処理
+    function triggerATS() {
+        clearInterval(timer);
+        isATSActive = true;
+        lampAts.classList.add('active-red');
+        confirmBtn.classList.add('blinking');
+        // ここで atsSound.play() を実行可能
+        alert("ATS警報！確認ボタンを押してください！");
+    }
+
+    // ATS確認ボタン
+    confirmBtn.addEventListener('click', () => {
+        if (isATSActive) {
+            resetSystem();
+        }
+    });
+
+    // 緊急ボタン
+    document.getElementById('emergencyBtn').addEventListener('click', () => {
+        clearInterval(timer);
+        resetSystem();
+        lampBrake.classList.add('active-red');
+        setSpeed(0);
+    });
+
+    function resetSystem() {
+        clearInterval(timer);
+        isATSActive = false;
+        lampAts.classList.remove('active-red');
+        lampBrake.classList.remove('active-red');
+        confirmBtn.classList.remove('blinking');
+        // ここで atsSound.pause() を実行可能
+    }
+</script>
+
 </body>
 </html>
