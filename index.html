@@ -2,9 +2,10 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ATS Driver's Cab Timer v4.0</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ATS Driver's Cab Timer v4.1</title>
     <style>
+        /* 全体のレイアウト調整 */
         body {
             background-color: #050505;
             color: #d0d0d0;
@@ -12,20 +13,30 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
-            overflow: hidden;
+            overflow: hidden; /* はみ出し防止 */
+            touch-action: manipulation; /* スマホのダブルタップズーム防止 */
+        }
+
+        /* 画面サイズに合わせて全体をリサイズするコンテナ */
+        #scaler {
+            transform-origin: center center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
         .cab-container {
             display: flex;
             background-color: #121212;
             border: 4px solid #2a2a2a;
-            padding: 30px;
+            padding: 20px;
             box-shadow: inset 0 0 80px #000;
-            gap: 40px;
+            gap: 20px;
             border-radius: 10px;
             position: relative;
+            /* PCでは横並び、画面が狭いと縦並び（基本はJSでスケール制御） */
         }
 
         .monitor {
@@ -38,261 +49,121 @@
             box-shadow: 0 0 20px #000;
         }
 
-        /* 補助計器のスタイル */
-        .sub-gauges {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            display: flex;
-            gap: 15px;
-        }
-
-        .sub-gauge {
-            width: 70px;
-            height: 70px;
-            background: #111;
-            border: 2px solid #444;
-            border-radius: 50%;
-            position: relative;
-        }
-
-        .sub-label {
-            position: absolute;
-            bottom: -18px;
-            width: 100%;
-            text-align: center;
-            font-size: 10px;
-            color: #666;
-        }
-
-        .sub-needle {
-            position: absolute;
-            bottom: 50%;
-            left: 50%;
-            width: 2px;
-            height: 30px;
-            background: #ff3c00;
-            transform-origin: bottom center;
-            transform: rotate(0deg);
-            z-index: 5;
-        }
-
-        .lamp-grid {
-            display: flex;
-            gap: 4px;
-            margin-bottom: 20px;
-        }
-
-        .lamp {
-            background-color: #222;
-            border: 1px solid #444;
-            color: #444;
-            font-size: 11px;
-            width: 18px;
-            height: 60px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            writing-mode: vertical-rl;
-            text-orientation: upright;
-            border-radius: 2px;
-        }
-
+        /* --- 以下、デザイン部分は前回と同じ --- */
+        .sub-gauges { position: absolute; top: 15px; right: 15px; display: flex; gap: 15px; }
+        .sub-gauge { width: 70px; height: 70px; background: #111; border: 2px solid #444; border-radius: 50%; position: relative; }
+        .sub-label { position: absolute; bottom: -18px; width: 100%; text-align: center; font-size: 10px; color: #666; }
+        .sub-needle { position: absolute; bottom: 50%; left: 50%; width: 2px; height: 30px; background: #ff3c00; transform-origin: bottom center; }
+        
+        .lamp-grid { display: flex; gap: 4px; margin-bottom: 20px; }
+        .lamp { background-color: #222; border: 1px solid #444; color: #444; font-size: 11px; width: 18px; height: 60px; display: flex; align-items: center; justify-content: center; writing-mode: vertical-rl; text-orientation: upright; border-radius: 2px; }
         .lamp.active-green { background-color: #080; color: #fff; box-shadow: 0 0 10px #0f0; }
         .lamp.active-red { background-color: #b00; color: #fff; box-shadow: 0 0 15px #f00; }
 
-        .speedometer-wrap {
-            position: absolute;
-            bottom: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 300px;
-            height: 300px;
-        }
+        .speedometer-wrap { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); width: 300px; height: 300px; }
+        .gauge-arc { position: absolute; top: 25px; left: 25px; width: 250px; height: 250px; border: 1px solid #333; border-radius: 50%; clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 0 85%, 50% 50%, 100% 85%); }
+        .gauge-label { position: absolute; width: 100%; height: 100%; font-size: 14px; color: #888; }
+        .gauge-label span { position: absolute; top: 50%; left: 50%; transform-origin: center; width: 300px; text-align: center; margin-left: -150px; margin-top: -10px; }
+        
+        /* 目盛り配置用 */
+        .val-0 { transform: rotate(-135deg) translateY(-125px) rotate(135deg); }
+        .val-20 { transform: rotate(-101deg) translateY(-125px) rotate(101deg); }
+        .val-40 { transform: rotate(-67deg) translateY(-125px) rotate(67deg); }
+        .val-60 { transform: rotate(-33deg) translateY(-125px) rotate(33deg); }
+        .val-80 { transform: rotate(0deg) translateY(-125px) rotate(0deg); }
+        .val-100 { transform: rotate(33deg) translateY(-125px) rotate(-33deg); }
+        .val-120 { transform: rotate(67deg) translateY(-125px) rotate(-67deg); }
+        .val-140 { transform: rotate(101deg) translateY(-125px) rotate(-101deg); }
+        .val-160 { transform: rotate(135deg) translateY(-125px) rotate(-135deg); }
 
-        /* 内側の円弧ライン (∩) */
-        .gauge-arc {
-            position: absolute;
-            top: 25px;
-            left: 25px;
-            width: 250px;
-            height: 250px;
-            border: 1px solid #333;
-            border-radius: 50%;
-            clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 0 85%, 50% 50%, 100% 85%); /* 下部を少しカット */
-        }
+        .needle { position: absolute; bottom: 50%; left: 50%; width: 4px; height: 120px; background: linear-gradient(to top, #ff3c00, #ff8c00); transform-origin: bottom center; transform: rotate(-135deg); transition: transform 1s linear; z-index: 10; clip-path: polygon(50% 0%, 100% 100%, 0% 100%); }
+        .digital-speed { position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%); font-size: 48px; color: #ff6a00; font-family: 'Courier New', monospace; text-shadow: 0 0 15px #ff4800; }
 
-        .gauge-label {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            font-size: 14px;
-            color: #888;
-        }
-
-        .gauge-label span {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform-origin: center;
-            width: 300px;
-            text-align: center;
-            margin-left: -150px;
-            margin-top: -10px;
-        }
-
-        /* 目盛り配置 */
-        .val-0   { transform: rotate(-135deg) translateY(-125px) rotate(135deg); }
-        .val-20  { transform: rotate(-101deg) translateY(-125px) rotate(101deg); }
-        .val-40  { transform: rotate(-67deg)  translateY(-125px) rotate(67deg); }
-        .val-60  { transform: rotate(-33deg)  translateY(-125px) rotate(33deg); }
-        .val-80  { transform: rotate(0deg)    translateY(-125px) rotate(0deg); }
-        .val-100 { transform: rotate(33deg)   translateY(-125px) rotate(-33deg); }
-        .val-120 { transform: rotate(67deg)   translateY(-125px) rotate(-67deg); }
-        .val-140 { transform: rotate(101deg)  translateY(-125px) rotate(-101deg); }
-        .val-160 { transform: rotate(135deg)  translateY(-125px) rotate(-135deg); }
-
-        .needle {
-            position: absolute;
-            bottom: 50%;
-            left: 50%;
-            width: 4px;
-            height: 120px;
-            background: linear-gradient(to top, #ff3c00, #ff8c00);
-            transform-origin: bottom center;
-            transform: rotate(-135deg);
-            transition: transform 1s linear;
-            z-index: 10;
-            clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
-        }
-
-        .digital-speed {
-            position: absolute;
-            bottom: 80px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 48px;
-            color: #ff6a00;
-            font-family: 'Courier New', Courier, monospace;
-            text-shadow: 0 0 15px #ff4800;
-        }
-
-        .control-panel {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            width: 180px;
-            align-items: center;
-        }
-
-        .btn-label { font-size: 11px; margin-bottom: 3px; color: #888; }
-
-        .round-btn {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            border: 6px solid #222;
-            font-weight: bold;
-            cursor: pointer;
-            font-size: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: 0.1s;
-            outline: none;
-        }
-
+        .control-panel { display: flex; flex-direction: column; gap: 15px; width: 180px; align-items: center; }
+        .round-btn { width: 80px; height: 80px; border-radius: 50%; border: 6px solid #222; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.1s; outline: none; }
         .btn-emergency { background-color: #700; color: #fff; box-shadow: 0 5px #300; }
         .btn-confirm { background-color: #ddd; color: #b00; box-shadow: 0 5px #666; }
         .btn-chime-stop { background-color: #ece3a1; color: #7a6e00; box-shadow: 0 5px #7a713e; }
-
         .time-settings { text-align: center; width: 100%; margin-top: 10px; }
-        .time-settings input {
-            width: 50px;
-            background: #000;
-            color: #0f0;
-            border: 1px solid #444;
-            font-size: 18px;
-            text-align: center;
-        }
-
-        .btn-start {
-            margin-top: 10px;
-            background: #333;
-            color: #ddd;
-            border: 1px solid #555;
-            padding: 8px;
-            width: 100%;
-            cursor: pointer;
-            font-weight: bold;
-        }
+        .time-settings input { width: 45px; background: #000; color: #0f0; border: 1px solid #444; font-size: 18px; text-align: center; }
+        .btn-start { margin-top: 10px; background: #333; color: #ddd; border: 1px solid #555; padding: 8px; width: 100%; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
 
-<div class="cab-container">
-    <div class="monitor">
-        <div class="lamp-grid">
-            <div class="lamp active-green">P電源</div>
-            <div class="lamp" id="lamp-pattern">パターン</div>
-            <div class="lamp" id="lamp-ats">ATS作動</div>
-            <div class="lamp" id="lamp-brake">非常ブレーキ</div>
-        </div>
-
-        <!-- 補助計器（右上） -->
-        <div class="sub-gauges">
-            <div class="sub-gauge">
-                <div class="sub-needle" id="needleHour"></div>
-                <div class="sub-label">HOUR</div>
+<!-- スケーリング用の外枠を追加 -->
+<div id="scaler">
+    <div class="cab-container">
+        <div class="monitor">
+            <div class="lamp-grid">
+                <div class="lamp active-green">P電源</div>
+                <div class="lamp" id="lamp-pattern">パターン</div>
+                <div class="lamp" id="lamp-ats">ATS作動</div>
+                <div class="lamp" id="lamp-brake">非常ブレーキ</div>
             </div>
-            <div class="sub-gauge">
-                <div class="sub-needle" id="needleMin"></div>
-                <div class="sub-label">MIN</div>
+
+            <div class="sub-gauges">
+                <div class="sub-gauge">
+                    <div class="sub-needle" id="needleHour"></div>
+                    <div class="sub-label">HOUR</div>
+                </div>
+                <div class="sub-gauge">
+                    <div class="sub-needle" id="needleMin"></div>
+                    <div class="sub-label">MIN</div>
+                </div>
+            </div>
+
+            <div class="speedometer-wrap">
+                <div class="gauge-arc"></div>
+                <div class="gauge-label">
+                    <span class="val-0">0</span><span class="val-20">20</span><span class="val-40">40</span>
+                    <span class="val-60">60</span><span class="val-80">80</span><span class="val-100">100</span>
+                    <span class="val-120">120</span><span class="val-140">140</span><span class="val-160">160</span>
+                </div>
+                <div class="digital-speed" id="digitalSpeed">000</div>
+                <div class="needle" id="needle"></div>
             </div>
         </div>
 
-        <div class="speedometer-wrap">
-            <div class="gauge-arc"></div> <!-- 内側のライン -->
-            <div class="gauge-label">
-                <span class="val-0">0</span><span class="val-20">20</span><span class="val-40">40</span>
-                <span class="val-60">60</span><span class="val-80">80</span><span class="val-100">100</span>
-                <span class="val-120">120</span><span class="val-140">140</span><span class="val-160">160</span>
+        <div class="control-panel">
+            <div><button class="round-btn btn-emergency" id="emergencyBtn">緊 急</button></div>
+            <div><button class="round-btn btn-confirm" id="confirmBtn">ATS確認</button></div>
+            <div><button class="round-btn btn-chime-stop" id="chimeStopBtn">警報持続</button></div>
+
+            <div class="time-settings">
+                <input type="number" id="inputMin" value="0" min="0"> 分
+                <input type="number" id="inputSec" value="10" min="0"> 秒
+                <button class="btn-start" id="startBtn">運転開始</button>
             </div>
-            <div class="digital-speed" id="digitalSpeed">000</div>
-            <div class="needle" id="needle"></div>
-        </div>
-    </div>
-
-    <div class="control-panel">
-        <div>
-            <div class="btn-label">緊急停止</div>
-            <button class="round-btn btn-emergency" id="emergencyBtn">緊 急</button>
-        </div>
-        <div>
-            <div class="btn-label">ベル停止</div>
-            <button class="round-btn btn-confirm" id="confirmBtn">ATS確認</button>
-        </div>
-        <div>
-            <div class="btn-label">チャイム停止</div>
-            <button class="round-btn btn-chime-stop" id="chimeStopBtn">警報持続</button>
-        </div>
-
-        <div class="time-settings">
-            <input type="number" id="inputMin" value="0" min="0" max="180"> 分
-            <input type="number" id="inputSec" value="10" min="0" max="59"> 秒
-            <button class="btn-start" id="startBtn">運転開始</button>
         </div>
     </div>
 </div>
 
 <script>
 window.onload = function() {
+    // --- 画面リサイズ対応のロジック ---
+    const scaler = document.getElementById('scaler');
+    const container = document.querySelector('.cab-container');
+
+    function resize() {
+        const winW = window.innerWidth;
+        const winH = window.innerHeight;
+        const baseW = container.offsetWidth + 40;
+        const baseH = container.offsetHeight + 40;
+
+        const scale = Math.min(winW / baseW, winH / baseH, 1);
+        scaler.style.transform = `scale(${scale})`;
+    }
+
+    window.addEventListener('resize', resize);
+    resize(); // 初回実行
+
+    // --- Web Audio & ロジック部分は前回と同じ（パスは sounds/） ---
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     const audioCtx = new AudioContext();
     const buffers = {};
     const activeNodes = { alarm: null, chime: null };
 
-    // 音源読み込み
     async function loadSound(name, url) {
         try {
             const response = await fetch(url);
@@ -309,7 +180,7 @@ window.onload = function() {
         chimeEnd: 'sounds/chime_end.wav'
     };
 
-    Promise.all(Object.entries(soundFiles).map(([name, url]) => loadSound(name, url)));
+    Object.entries(soundFiles).forEach(([name, url]) => loadSound(name, url));
 
     function playLoop(name, type) {
         if (!buffers[name]) return;
@@ -342,23 +213,19 @@ window.onload = function() {
     const lampBrake = document.getElementById('lamp-brake');
 
     function updateGauges(totalSec) {
-        // メイン速度計の計算（最大160で固定）
         const displaySec = Math.min(totalSec, 160);
         const speedAngle = -135 + (displaySec * (270 / 160));
         needle.style.transform = `rotate(${speedAngle}deg)`;
         digitalSpeed.innerText = String(Math.ceil(totalSec)).padStart(3, '0');
-
-        // 補助計器の計算
+        
         const mins = totalSec / 60;
         const hours = mins / 60;
-        
-        needleMin.style.transform = `rotate(${mins * 6}deg)`;   // 60分で360度
-        needleHour.style.transform = `rotate(${hours * 30}deg)`; // 12時間で360度
+        needleMin.style.transform = `rotate(${mins * 6}deg)`;
+        needleHour.style.transform = `rotate(${hours * 30}deg)`;
     }
 
     document.getElementById('startBtn').onclick = function() {
         if (audioCtx.state === 'suspended') audioCtx.resume();
-        
         const m = parseInt(document.getElementById('inputMin').value) || 0;
         const s = parseInt(document.getElementById('inputSec').value) || 0;
         currentSeconds = (m * 60) + s;
@@ -414,8 +281,8 @@ window.onload = function() {
 
     function resetSystem() {
         clearInterval(timer);
-        if (activeNodes.alarm) { activeNodes.alarm.stop(); activeNodes.alarm = null; }
-        if (activeNodes.chime) { activeNodes.chime.stop(); activeNodes.chime = null; }
+        if (activeNodes.alarm) { try { activeNodes.alarm.stop(); } catch(e){} activeNodes.alarm = null; }
+        if (activeNodes.chime) { try { activeNodes.chime.stop(); } catch(e){} activeNodes.chime = null; }
         isAlarmRunning = false;
         isChimeRunning = false;
         lampAts.classList.remove('active-red');
