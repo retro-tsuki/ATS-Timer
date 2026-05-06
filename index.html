@@ -245,116 +245,142 @@
 <audio id="sndChimeEnd" src="sounds/chime_end.wav" preload="auto"></audio>
 
 <script>
-    window.onload = function() {
-        let timer = null;
-        let currentSeconds = 0;
-        let isAlarmRunning = false;
-        let isChimeRunning = false;
+window.onload = function() {
+    // --- Web Audio API の準備 ---
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    const audioCtx = new AudioContext();
 
-        const needle = document.getElementById('needle');
-        const digitalSpeed = document.getElementById('digitalSpeed');
-        const lampAts = document.getElementById('lamp-ats');
-        const lampBrake = document.getElementById('lamp-brake');
+    // 音源データを保持する変数
+    const buffers = {};
+    const activeNodes = { alarm: null, chime: null };
 
-        // 音源要素の取得
-        const sndPattern = document.getElementById('sndPattern');
-        const sndAlarm = document.getElementById('sndAlarm');
-        const sndAlarmEnd = document.getElementById('sndAlarmEnd');
-        const sndChime = document.getElementById('sndChime');
-        const sndChimeEnd = document.getElementById('sndChimeEnd');
+    // 音源の読み込み関数
+    async function loadSound(name, url) {
+        const response = await fetch(url);
+        const arrayBuffer = await response.arrayBuffer();
+        buffers[name] = await audioCtx.decodeAudioData(arrayBuffer);
+    }
 
-        function setSpeed(speed) {
-            const angle = -135 + (speed * (270 / 160));
-            needle.style.transform = `rotate(${angle}deg)`;
-            digitalSpeed.innerText = String(Math.ceil(speed)).padStart(3, '0');
-        }
+    // 全ての音源をロード
+    const soundFiles = {
+        pattern: 'sounds/pattern.wav',
+        alarm: 'sounds/Alarm.wav',
+        alarmEnd: 'sounds/Alarm_end.wav',
+        chime: 'sounds/chime.wav',
+        chimeEnd: 'sounds/chime_end.wav'
+    };
 
-        document.getElementById('startBtn').onclick = function() {
-            const m = parseInt(document.getElementById('inputMin').value) || 0;
-            const s = parseInt(document.getElementById('inputSec').value) || 0;
-            currentSeconds = (m * 60) + s;
-            if (currentSeconds <= 0) return;
+    Promise.all(Object.entries(soundFiles).map(([name, url]) => loadSound(name, url)))
+        .then(() => console.log("All sounds loaded (Web Audio API)"));
 
-            resetSystem();
-            
-            // 1. パターン接近音を鳴らす
-            if(sndPattern) {
-                sndPattern.currentTime = 0;
-                sndPattern.play().catch(e => console.log("Pattern sound error:", e));
-            }
+    // 再生関数（ループ対応）
+    function playLoop(name, type) {
+        if (!buffers[name]) return;
+        const source = audioCtx.createBufferSource();
+        source.buffer = buffers[name];
+        source.loop = true;
+        source.connect(audioCtx.destination);
+        source.start(0);
+        activeNodes[type] = source;
+    }
 
+    // 単発再生関数
+    function playOnce(name) {
+        if (!buffers[name]) return;
+        const source = audioCtx.createBufferSource();
+        source.buffer = buffers[name];
+        source.connect(audioCtx.destination);
+        source.start(0);
+    }
+
+    // --- タイマー・ATSロジック ---
+    let timer = null;
+    let currentSeconds = 0;
+    let isAlarmRunning = false;
+    let isChimeRunning = false;
+
+    const needle = document.getElementById('needle');
+    const digitalSpeed = document.getElementById('digitalSpeed');
+    const lampAts = document.getElementById('lamp-ats');
+    const lampBrake = document.getElementById('lamp-brake');
+
+    function setSpeed(speed) {
+        const angle = -135 + (speed * (270 / 160));
+        needle.style.transform = `rotate(${angle}deg)`;
+        digitalSpeed.innerText = String(Math.ceil(speed)).padStart(3, '0');
+    }
+
+    document.getElementById('startBtn').onclick = function() {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        
+        const m = parseInt(document.getElementById('inputMin').value) || 0;
+        const s = parseInt(document.getElementById('inputSec').value) || 0;
+        currentSeconds = (m * 60) + s;
+        if (currentSeconds <= 0) return;
+
+        resetSystem();
+        playOnce('pattern'); // パターン接近音
+        setSpeed(currentSeconds);
+
+        timer = setInterval(() => {
+            currentSeconds--;
             setSpeed(currentSeconds);
-            timer = setInterval(() => {
-                currentSeconds--;
-                setSpeed(currentSeconds);
-                if (currentSeconds <= 0) {
-                    triggerAlert();
-                }
-            }, 1000);
-        };
+            if (currentSeconds <= 0) triggerAlert();
+        }, 1000);
+    };
 
-        function triggerAlert() {
-            clearInterval(timer);
-            isAlarmRunning = true;
-            isChimeRunning = true;
-            lampAts.classList.add('active-red');
-            
-            // ベルとチャイムを開始
-            if(sndAlarm) sndAlarm.play();
-            if(sndChime) sndChime.play();
-        }
+    function triggerAlert() {
+        clearInterval(timer);
+        isAlarmRunning = true;
+        isChimeRunning = true;
+        lampAts.classList.add('active-red');
+        
+        playLoop('alarm', 'alarm');
+        playLoop('chime', 'chime');
+    }
 
-        // ATS確認（ベル停止）
-        document.getElementById('confirmBtn').onclick = function() {
-            if (isAlarmRunning) {
-                // 音の隙間を減らすため、停止と再生をほぼ同時に行う
-                if(sndAlarmEnd) {
-                    sndAlarmEnd.currentTime = 0;
-                    sndAlarmEnd.play();
-                }
-                sndAlarm.pause();
-                isAlarmRunning = false;
-                checkAllStopped();
-            }
-        };
-
-        // 警報持続（チャイム停止）
-        document.getElementById('chimeStopBtn').onclick = function() {
-            if (isChimeRunning) {
-                if(sndChimeEnd) {
-                    sndChimeEnd.currentTime = 0;
-                    sndChimeEnd.play();
-                }
-                sndChime.pause();
-                isChimeRunning = false;
-                checkAllStopped();
-            }
-        };
-
-        function checkAllStopped() {
-            if (!isAlarmRunning && !isChimeRunning) {
-                lampAts.classList.remove('active-red');
-            }
-        }
-
-        document.getElementById('emergencyBtn').onclick = function() {
-            resetSystem();
-            lampBrake.classList.add('active-red');
-            setSpeed(0);
-        };
-
-        function resetSystem() {
-            clearInterval(timer);
+    // ATS確認（ベル停止）
+    document.getElementById('confirmBtn').onclick = function() {
+        if (isAlarmRunning && activeNodes.alarm) {
+            activeNodes.alarm.stop(); // ループを即座に止める
+            playOnce('alarmEnd');     // 余韻を流す
             isAlarmRunning = false;
-            isChimeRunning = false;
-            [sndPattern, sndAlarm, sndChime, sndAlarmEnd, sndChimeEnd].forEach(a => {
-                if(a) { a.pause(); a.currentTime = 0; }
-            });
-            lampAts.classList.remove('active-red');
-            lampBrake.classList.remove('active-red');
+            checkAllStopped();
         }
     };
-</script>
 
+    // 警報持続（チャイム停止）
+    document.getElementById('chimeStopBtn').onclick = function() {
+        if (isChimeRunning && activeNodes.chime) {
+            activeNodes.chime.stop(); // ループを即座に止める
+            playOnce('chimeEnd');     // 余韻を流す
+            isChimeRunning = false;
+            checkAllStopped();
+        }
+    };
+
+    function checkAllStopped() {
+        if (!isAlarmRunning && !isChimeRunning) {
+            lampAts.classList.remove('active-red');
+        }
+    }
+
+    document.getElementById('emergencyBtn').onclick = function() {
+        resetSystem();
+        lampBrake.classList.add('active-red');
+        setSpeed(0);
+    };
+
+    function resetSystem() {
+        clearInterval(timer);
+        if (activeNodes.alarm) { activeNodes.alarm.stop(); activeNodes.alarm = null; }
+        if (activeNodes.chime) { activeNodes.chime.stop(); activeNodes.chime = null; }
+        isAlarmRunning = false;
+        isChimeRunning = false;
+        lampAts.classList.remove('active-red');
+        lampBrake.classList.remove('active-red');
+    }
+};
+</script>
 </body>
 </html>
