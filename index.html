@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ATS　Timer v3.1</title>
+    <title>ATS Driver's Cab Timer v4.0</title>
     <style>
         body {
             background-color: #050505;
@@ -25,6 +25,7 @@
             box-shadow: inset 0 0 80px #000;
             gap: 40px;
             border-radius: 10px;
+            position: relative;
         }
 
         .monitor {
@@ -35,6 +36,45 @@
             position: relative;
             padding: 10px;
             box-shadow: 0 0 20px #000;
+        }
+
+        /* 補助計器のスタイル */
+        .sub-gauges {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            display: flex;
+            gap: 15px;
+        }
+
+        .sub-gauge {
+            width: 70px;
+            height: 70px;
+            background: #111;
+            border: 2px solid #444;
+            border-radius: 50%;
+            position: relative;
+        }
+
+        .sub-label {
+            position: absolute;
+            bottom: -18px;
+            width: 100%;
+            text-align: center;
+            font-size: 10px;
+            color: #666;
+        }
+
+        .sub-needle {
+            position: absolute;
+            bottom: 50%;
+            left: 50%;
+            width: 2px;
+            height: 30px;
+            background: #ff3c00;
+            transform-origin: bottom center;
+            transform: rotate(0deg);
+            z-index: 5;
         }
 
         .lamp-grid {
@@ -70,6 +110,18 @@
             height: 300px;
         }
 
+        /* 内側の円弧ライン (∩) */
+        .gauge-arc {
+            position: absolute;
+            top: 25px;
+            left: 25px;
+            width: 250px;
+            height: 250px;
+            border: 1px solid #333;
+            border-radius: 50%;
+            clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 0 85%, 50% 50%, 100% 85%); /* 下部を少しカット */
+        }
+
         .gauge-label {
             position: absolute;
             width: 100%;
@@ -89,6 +141,7 @@
             margin-top: -10px;
         }
 
+        /* 目盛り配置 */
         .val-0   { transform: rotate(-135deg) translateY(-125px) rotate(135deg); }
         .val-20  { transform: rotate(-101deg) translateY(-125px) rotate(101deg); }
         .val-40  { transform: rotate(-67deg)  translateY(-125px) rotate(67deg); }
@@ -149,28 +202,9 @@
             outline: none;
         }
 
-        .btn-emergency {
-            background-color: #700;
-            color: #fff;
-            box-shadow: 0 5px #300, inset 0 0 15px rgba(0,0,0,0.5);
-        }
-        .btn-emergency:active { transform: translateY(3px); box-shadow: 0 2px #300; }
-
-        .btn-confirm {
-            background-color: #ddd;
-            color: #b00;
-            border-color: #999;
-            box-shadow: 0 5px #666;
-        }
-        .btn-confirm:active { transform: translateY(3px); box-shadow: 0 2px #666; }
-
-        .btn-chime-stop {
-            background-color: #ece3a1;
-            color: #7a6e00;
-            border-color: #bdb068;
-            box-shadow: 0 5px #7a713e;
-        }
-        .btn-chime-stop:active { transform: translateY(3px); box-shadow: 0 2px #7a713e; }
+        .btn-emergency { background-color: #700; color: #fff; box-shadow: 0 5px #300; }
+        .btn-confirm { background-color: #ddd; color: #b00; box-shadow: 0 5px #666; }
+        .btn-chime-stop { background-color: #ece3a1; color: #7a6e00; box-shadow: 0 5px #7a713e; }
 
         .time-settings { text-align: center; width: 100%; margin-top: 10px; }
         .time-settings input {
@@ -205,7 +239,20 @@
             <div class="lamp" id="lamp-brake">非常ブレーキ</div>
         </div>
 
+        <!-- 補助計器（右上） -->
+        <div class="sub-gauges">
+            <div class="sub-gauge">
+                <div class="sub-needle" id="needleHour"></div>
+                <div class="sub-label">HOUR</div>
+            </div>
+            <div class="sub-gauge">
+                <div class="sub-needle" id="needleMin"></div>
+                <div class="sub-label">MIN</div>
+            </div>
+        </div>
+
         <div class="speedometer-wrap">
+            <div class="gauge-arc"></div> <!-- 内側のライン -->
             <div class="gauge-label">
                 <span class="val-0">0</span><span class="val-20">20</span><span class="val-40">40</span>
                 <span class="val-60">60</span><span class="val-80">80</span><span class="val-100">100</span>
@@ -231,37 +278,29 @@
         </div>
 
         <div class="time-settings">
-            <input type="number" id="inputMin" value="0" min="0" max="2"> 分
+            <input type="number" id="inputMin" value="0" min="0" max="180"> 分
             <input type="number" id="inputSec" value="10" min="0" max="59"> 秒
             <button class="btn-start" id="startBtn">運転開始</button>
         </div>
     </div>
 </div>
-<!-- 音源定義（パスを sounds/ に統一） -->
-<audio id="sndPattern" src="sounds/pattern.wav" preload="auto"></audio>
-<audio id="sndAlarm" src="sounds/Alarm.wav" loop preload="auto"></audio>
-<audio id="sndAlarmEnd" src="sounds/Alarm_end.wav" preload="auto"></audio>
-<audio id="sndChime" src="sounds/chime.wav" loop preload="auto"></audio>
-<audio id="sndChimeEnd" src="sounds/chime_end.wav" preload="auto"></audio>
 
 <script>
 window.onload = function() {
-    // --- Web Audio API の準備 ---
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     const audioCtx = new AudioContext();
-
-    // 音源データを保持する変数
     const buffers = {};
     const activeNodes = { alarm: null, chime: null };
 
-    // 音源の読み込み関数
+    // 音源読み込み
     async function loadSound(name, url) {
-        const response = await fetch(url);
-        const arrayBuffer = await response.arrayBuffer();
-        buffers[name] = await audioCtx.decodeAudioData(arrayBuffer);
+        try {
+            const response = await fetch(url);
+            const arrayBuffer = await response.arrayBuffer();
+            buffers[name] = await audioCtx.decodeAudioData(arrayBuffer);
+        } catch(e) { console.error(name + " load failed", e); }
     }
 
-    // 全ての音源をロード
     const soundFiles = {
         pattern: 'sounds/pattern.wav',
         alarm: 'sounds/Alarm.wav',
@@ -270,10 +309,8 @@ window.onload = function() {
         chimeEnd: 'sounds/chime_end.wav'
     };
 
-    Promise.all(Object.entries(soundFiles).map(([name, url]) => loadSound(name, url)))
-        .then(() => console.log("All sounds loaded (Web Audio API)"));
+    Promise.all(Object.entries(soundFiles).map(([name, url]) => loadSound(name, url)));
 
-    // 再生関数（ループ対応）
     function playLoop(name, type) {
         if (!buffers[name]) return;
         const source = audioCtx.createBufferSource();
@@ -284,7 +321,6 @@ window.onload = function() {
         activeNodes[type] = source;
     }
 
-    // 単発再生関数
     function playOnce(name) {
         if (!buffers[name]) return;
         const source = audioCtx.createBufferSource();
@@ -293,21 +329,31 @@ window.onload = function() {
         source.start(0);
     }
 
-    // --- タイマー・ATSロジック ---
     let timer = null;
     let currentSeconds = 0;
     let isAlarmRunning = false;
     let isChimeRunning = false;
 
     const needle = document.getElementById('needle');
+    const needleMin = document.getElementById('needleMin');
+    const needleHour = document.getElementById('needleHour');
     const digitalSpeed = document.getElementById('digitalSpeed');
     const lampAts = document.getElementById('lamp-ats');
     const lampBrake = document.getElementById('lamp-brake');
 
-    function setSpeed(speed) {
-        const angle = -135 + (speed * (270 / 160));
-        needle.style.transform = `rotate(${angle}deg)`;
-        digitalSpeed.innerText = String(Math.ceil(speed)).padStart(3, '0');
+    function updateGauges(totalSec) {
+        // メイン速度計の計算（最大160で固定）
+        const displaySec = Math.min(totalSec, 160);
+        const speedAngle = -135 + (displaySec * (270 / 160));
+        needle.style.transform = `rotate(${speedAngle}deg)`;
+        digitalSpeed.innerText = String(Math.ceil(totalSec)).padStart(3, '0');
+
+        // 補助計器の計算
+        const mins = totalSec / 60;
+        const hours = mins / 60;
+        
+        needleMin.style.transform = `rotate(${mins * 6}deg)`;   // 60分で360度
+        needleHour.style.transform = `rotate(${hours * 30}deg)`; // 12時間で360度
     }
 
     document.getElementById('startBtn').onclick = function() {
@@ -319,12 +365,12 @@ window.onload = function() {
         if (currentSeconds <= 0) return;
 
         resetSystem();
-        playOnce('pattern'); // パターン接近音
-        setSpeed(currentSeconds);
+        playOnce('pattern');
+        updateGauges(currentSeconds);
 
         timer = setInterval(() => {
             currentSeconds--;
-            setSpeed(currentSeconds);
+            updateGauges(currentSeconds);
             if (currentSeconds <= 0) triggerAlert();
         }, 1000);
     };
@@ -334,41 +380,36 @@ window.onload = function() {
         isAlarmRunning = true;
         isChimeRunning = true;
         lampAts.classList.add('active-red');
-        
         playLoop('alarm', 'alarm');
         playLoop('chime', 'chime');
     }
 
-    // ATS確認（ベル停止）
     document.getElementById('confirmBtn').onclick = function() {
         if (isAlarmRunning && activeNodes.alarm) {
-            activeNodes.alarm.stop(); // ループを即座に止める
-            playOnce('alarmEnd');     // 余韻を流す
+            activeNodes.alarm.stop();
+            playOnce('alarmEnd');
             isAlarmRunning = false;
             checkAllStopped();
         }
     };
 
-    // 警報持続（チャイム停止）
     document.getElementById('chimeStopBtn').onclick = function() {
         if (isChimeRunning && activeNodes.chime) {
-            activeNodes.chime.stop(); // ループを即座に止める
-            playOnce('chimeEnd');     // 余韻を流す
+            activeNodes.chime.stop();
+            playOnce('chimeEnd');
             isChimeRunning = false;
             checkAllStopped();
         }
     };
 
     function checkAllStopped() {
-        if (!isAlarmRunning && !isChimeRunning) {
-            lampAts.classList.remove('active-red');
-        }
+        if (!isAlarmRunning && !isChimeRunning) lampAts.classList.remove('active-red');
     }
 
     document.getElementById('emergencyBtn').onclick = function() {
         resetSystem();
         lampBrake.classList.add('active-red');
-        setSpeed(0);
+        updateGauges(0);
     };
 
     function resetSystem() {
